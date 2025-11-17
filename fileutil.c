@@ -115,7 +115,7 @@ char * stringSearch2D(char *target, char (*lines)[COLS], int size)
 {
     for (int i = 0; i < size; i++)
 	{
-		if(strcmp(lines[i], target) != NULL)
+		if (strcmp(lines[i], target) == 0)
 		{
 			return lines[i];
 		}

@@ -9,7 +9,8 @@
 #endif
 
 #define PASS_LEN 50     // Maximum length any password will be.
-#define HASH_LEN 33     // Length of hash plus one for null.
+// NOTE: fileutil.h uses COLS (often 100). Using the same here ensures compatibility.
+// #define HASH_LEN 33     // Length of hash plus one for null.
 
 int trim(char str[]);
 
@@ -26,8 +27,13 @@ int main(int argc, char *argv[])
     //   Use the loadFile function from fileutil.c
     //   Uncomment the appropriate statement.
     int size;
-    char (*hashes)[HASH_LEN] = loadFile2D(argv[1], &size);
+    char (*hashes)[COLS] = loadFile2D(argv[1], &size);
     //char **hashes = loadFile2D(argv[1], &size);
+    if (!hashes)
+    {
+        printf("Unable to load %s\n", argv[1]);
+        exit(1);
+    }
     
     // CHALLENGE1: Sort the hashes using qsort.
     
@@ -36,8 +42,8 @@ int main(int argc, char *argv[])
     FILE *in = fopen(argv[2], "r");
     if(!in)
     {
-        
         printf("Unable to open %s\n", argv[2]);
+        free2D(hashes);
         exit(1);
     }
 
@@ -46,18 +52,27 @@ int main(int argc, char *argv[])
     // function from fileutil.h to find the hash.
     // If you find it, display the password and the hash.
     char line[1000];
-    while(fgets(line, 1000, in) != NULL)
+    int cracked = 0;
+
+    while (fgets(line, sizeof(line), in) != NULL)
     {
         int length = trim(line);
-        char *target = md5(line, length);
-        char *found = stringSearch2D(target, hashes, size);
-		if (found)
-			printf("Password: %s\nHash: %s\n", line, found);
-		else
-			printf("Not found!\n");
-        free(target);
+
+        if (length > 0)
+        {
+            char *target = md5(line, length);
+            if (target)
+            {
+                char *found = stringSearch2D(target, hashes, size);
+                if (found)
+                {
+                    printf("%s %s\n", found, line);
+                    cracked++;
+                }
+                free(target);
+            }
+        }
     }
-    printf("Success!\n");
 
     // Keep track of how many hashes were found.
     // CHALLENGE1: Use binary search instead of linear search.
@@ -67,9 +82,11 @@ int main(int argc, char *argv[])
     //   Close the file
     fclose(in);
     //   Display the number of hashes found.
-    printf("Number of Hashes: %d\n", size);
+    printf("Cracked: %d\n", cracked);
     //   Free up memory.
     free2D(hashes);
+
+    return 0;
 }
 
 int trim(char str[])
